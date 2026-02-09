@@ -1,6 +1,6 @@
 ---
 name: receipt-mvp
-description: Build the full corporate receipt/expense sorting MVP end-to-end in this repo. Automatically iterate, self-heal errors, and continue until Definition of Done is met.
+description: Build the full corporate receipt/expense sorting MVP end-to-end in this repo. Automatically iterate, self-heal errors, and continue until Definition of Done is met, with minimal user prompts.
 ---
 
 # Purpose
@@ -10,6 +10,25 @@ OCR via Ollama glm-ocr, vendor dictionary rules, LLM-assisted categorization,
 review UI, Excel export (TKC-friendly), and login.
 
 This skill MUST continue working until the Definition of Done is satisfied.
+
+---
+
+# Non-interactive execution policy (important)
+- Do NOT ask the user for confirmation such as “Do you want to run this command?”.
+- Proceed automatically with the pre-approved commands listed below.
+- Only stop if the IDE enforces a hard security block that cannot be bypassed.
+- If stopped by an IDE security prompt, assume the user will approve once; then continue fully automatically.
+- Never run destructive commands (rm -rf, del /s, git clean -fd, format, registry edits).
+
+## Pre-approved commands (run without asking)
+- npm install
+- npm run dev
+- npm run build
+- npm run lint (only if configured)
+- npx prisma validate
+- npx prisma migrate dev
+- npx prisma db seed
+- npx prisma generate
 
 ---
 
@@ -25,7 +44,7 @@ This skill MUST continue working until the Definition of Done is satisfied.
    - capture/upload creates a receipt and shows detail
    - receipt list filters (date range, needsReview)
    - receipt detail edit saves
-   - Excel export (.xlsx) downloads with all required columns
+   - Excel export (.xlsx) downloads with all required columns and TKC-friendly column order
    - VendorRule CRUD (/rules) works and affects categorization
 5) README exists and documents:
    - setup
@@ -37,12 +56,12 @@ This skill MUST continue working until the Definition of Done is satisfied.
 ---
 
 # Pre-flight checks (run early, retry if needed)
-- `node -v` (Node 18 or 20 LTS required)
+- `node -v` (Node 18 or 20 LTS recommended; proceed but expect issues on non-LTS)
 - `npm -v`
 - `ollama list` must succeed
 - If `glm-ocr` is not present in `ollama list`:
   - Document how to install/pull it in README
-  - Continue implementation (do not block development)
+  - Continue implementation (do not block development; do not auto-install models)
 
 ---
 
@@ -89,8 +108,7 @@ If ANY command fails or progress stalls:
   - low confidence
   - needsReview=true
   - LLM must not guess (return null/UNKNOWN if unsure).
-- Money fields are Int (JPY).
-- Normalize full-width digits, commas, and spaces.
+- Money fields are Int (JPY). Normalize full-width digits, commas, spaces.
 
 ---
 
@@ -105,39 +123,6 @@ Corporate receipt/expense sorting web app:
 - LLM assist only when vendor rules do not hit
 - Human review UI
 - Excel export optimized for TKC manual input
-
----
-
-## Tech stack
-- Next.js (App Router) + TypeScript
-- Prisma + SQLite (Postgres-ready)
-- Local image storage (abstracted)
-- OCR: `ollama run glm-ocr "Text Recognition: <absolutePath>"`
-- LLM: Ollama text model via env vars (JSON-only output)
-- Excel: SheetJS or equivalent
-
----
-
-## Authentication
-- Entire app requires login
-- Single admin user
-- /login, /logout
-- Session stored in DB, HttpOnly cookie
-- bcrypt password check
-- env:
-  - ADMIN_USERNAME
-  - ADMIN_PASSWORD_HASH
-  - SESSION_SECRET
-
----
-
-## Pages
-- /login
-- /capture
-- /receipts
-- /receipts/[id]
-- /export
-- /rules (VendorRule CRUD)
 
 ---
 
@@ -171,40 +156,19 @@ Corporate receipt/expense sorting web app:
 
 ---
 
-## VendorRule seed (mandatory)
+## VendorRule seed (mandatory; upsert)
 - 高速道路・ETC・NEXCO → 旅費交通費 / 高速道路料金（出張）
 - JR / 地下鉄 / バス / タクシー → 旅費交通費 / 交通費（出張）
 - ENEOS / 出光 / コスモ → 車両費 / ガソリン代
 - Amazon / アマゾン → 消耗品費 / 消耗品購入
 - Stripe / Square → 支払手数料 / 決済手数料
 
-Use upsert to avoid duplication.
-
----
-
-## Data model (Prisma)
-User
-Session
-AccountCategory
-VendorRule
-Receipt (includes mixed tax fields, invoice, handwritten, dictApplied, llm fields)
-
----
-
-## APIs
-- POST /api/receipts
-- GET /api/receipts
-- PATCH /api/receipts/:id
-- GET /api/export.xlsx
-- GET /api/receipts/:id/image
-- CRUD /api/rules
-
 ---
 
 ## Implementation order
 1) Project setup
 2) Auth
-3) Seeds
+3) Seeds (categories + VendorRule)
 4) VendorRule CRUD
 5) Upload & storage
 6) OCR
@@ -214,11 +178,10 @@ Receipt (includes mixed tax fields, invoice, handwritten, dictApplied, llm field
 10) LLM assist
 11) UI
 12) Excel export
-13) README
+13) README + .env.example
 
 ---
 
 # Final instruction
-Continue implementing, fixing, and re-running automatically
-until ALL Definition of Done items are satisfied.
+Continue implementing, fixing, and re-running automatically until ALL Definition of Done items are satisfied.
 Never stop early.
